@@ -24,4 +24,4 @@
     3. Summing Δt = Δs / v_allowed over each segment
    
 ## Running
-- To run, process map and then change iteration parameters (number of samples along centerline and number of splines) for best fit.
+Process map and then change iteration parameters (number of samples along centerline and number of splines) for best fit.
