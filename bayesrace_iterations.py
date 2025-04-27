@@ -19,7 +19,7 @@ def compute_normals(center):
     ny =  dx / lengths
     return np.column_stack((nx, ny))
 
-def lateral_bounds_at_node(p, n, inner_line, outer_line, search_dist=5.0, max_fallback_dist=100.0):
+def lateral_bounds_at_node(p, n, inner_line, outer_line, search_dist=5.0):
     ray = LineString([tuple(p - search_dist*n), tuple(p + search_dist*n)])
     i_inner = ray.intersection(inner_line)
     i_outer = ray.intersection(outer_line)
@@ -38,6 +38,7 @@ def lateral_bounds_at_node(p, n, inner_line, outer_line, search_dist=5.0, max_fa
         raise RuntimeError(f"Unexpected geometry {geom.geom_type!r}")
 
     if i_inner.is_empty or i_outer.is_empty:
+        # fallback to nearest-point on each boundary
         pt = Point(p)
         pi = np.array(nearest_points(pt, inner_line)[1].coords[0])
         po = np.array(nearest_points(pt, outer_line)[1].coords[0])
@@ -74,21 +75,59 @@ def generate_racing_line(n_nodes=20, scale=0.9, n_spline=200):
     t_smooth = np.linspace(0, 1, n_spline)
     return cs_x(t_smooth), cs_y(t_smooth)
 
+def estimate_lap_time(x, y, mu=1.0, g=9.81, vmax=np.inf):
+    # first derivatives
+    dx = np.gradient(x)
+    dy = np.gradient(y)
+    # second derivatives
+    ddx = np.gradient(dx)
+    ddy = np.gradient(dy)
+    # curvature
+    kappa = np.abs(dx*ddy - dy*ddx) / (dx*dx + dy*dy)**1.5
+    # max lateral speed
+    v_lat = np.sqrt(mu * g / np.maximum(kappa, 1e-6))
+    # enforce straight-line cap
+    v_allowed = np.minimum(v_lat, vmax)
+    # segment lengths
+    ds = np.hypot(np.diff(x), np.diff(y))
+    # time per segment
+    t_seg = ds / v_allowed[:-1]
+    return np.sum(t_seg)
+
 if __name__ == "__main__":
     inner, outer, center = load_track()
 
+    best_time = float('inf')
+    best_line = None
+    all_lines = []
+
+    # iterations
+    for i in range(50):
+        x_line, y_line = generate_racing_line()
+        t = estimate_lap_time(x_line, y_line)
+        all_lines.append((x_line, y_line, t))
+        if t < best_time:
+            best_time = t
+            best_line = (x_line, y_line)
+
+    # plot
     plt.figure(figsize=(8,8))
-    # plot static boundaries and centerline
     plt.plot(inner[:,0], inner[:,1], 'k--', label="Inner boundary")
     plt.plot(outer[:,0], outer[:,1], 'k--', label="Outer boundary")
     plt.plot(center[:,0], center[:,1], 'gray',  label="Centerline")
 
-    # generate & plot 10 random racing lines
-    for i in range(10):
-        x_line, y_line = generate_racing_line()
-        plt.plot(x_line, y_line, alpha=0.6, label="_nolegend_")
+    # plot non-best lines with low opacity
+    for x, y, t in all_lines:
+        if (x, y) is best_line:
+            continue
+        plt.plot(x, y, color='blue', alpha=0.2, label="_nolegend_")
+
+    # plot best line with red
+    xb, yb = best_line
+    plt.plot(xb, yb, color='red', linewidth=2,
+             label=f"Best line (est. time = {best_time:.2f}s)")
 
     plt.axis('equal')
     plt.legend()
-    plt.title("10 Sample Racing Lines")
+    plt.title("Best Racing Line Highlighted")
     plt.show()
