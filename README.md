@@ -10,7 +10,7 @@
   - Intersects with inner/outer `LineString` boundaries  
   - Falls back to the true nearest-point if intersection is empty  
   - Returns `[d_min, d_max]` lateral offsets along `n`  
-- **`generate_racing_line(n_nodes=20, scale=0.9, n_spline=100)`**  
+- **`generate_racing_line(n_nodes=x, scale=0.9, n_spline=x)`**  
   - Samples `n_nodes` evenly spaced along the centerline  
   - For each node:  
     - Computes lateral bounds via `lateral_bounds_at_node()`  
