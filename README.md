@@ -27,3 +27,4 @@
 Process map and then change iteration parameters (number of samples along centerline and number of splines) for best fit.
 
 ## Testing different maps
+This repo (https://github.com/f1tenth/f1tenth_racetracks) has all the F1 tracks in order to test each one.
