@@ -25,3 +25,5 @@
    
 ## Running
 Process map and then change iteration parameters (number of samples along centerline and number of splines) for best fit.
+
+## Testing different maps
